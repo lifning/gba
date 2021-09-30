@@ -83,7 +83,7 @@ unsafe fn transfer_align4_thumb<T: Copy>(mut dst: *mut T, mut src: *const T) {
 }
 
 #[cfg(target_arch = "arm")]
-#[instruction_set(arm::a32)]
+#[cfg_attr(all(target_arch = "arm", target_env = ""), instruction_set(arm::a32))]
 #[allow(unused_assignments)]
 unsafe fn transfer_align4_arm<T: Copy>(mut dst: *mut T, mut src: *const T) {
   let size = size_of::<T>();
@@ -164,7 +164,7 @@ unsafe fn exchange<T>(dst: *mut T, src: *const T) -> T {
 }
 
 #[cfg(target_arch = "arm")]
-#[instruction_set(arm::a32)]
+#[cfg_attr(all(target_arch = "arm", target_env = ""), instruction_set(arm::a32))]
 unsafe fn exchange_align4_arm<T>(dst: *mut T, i: u32) -> u32 {
   let out;
   asm!("swp {2}, {1}, [{0}]", in(reg) dst, in(reg) i, lateout(reg) out);
@@ -172,7 +172,7 @@ unsafe fn exchange_align4_arm<T>(dst: *mut T, i: u32) -> u32 {
 }
 
 #[cfg(target_arch = "arm")]
-#[instruction_set(arm::a32)]
+#[cfg_attr(all(target_arch = "arm", target_env = ""), instruction_set(arm::a32))]
 unsafe fn exchange_align1_arm<T>(dst: *mut T, i: u8) -> u8 {
   let out;
   asm!("swpb {2}, {1}, [{0}]", in(reg) dst, in(reg) i, lateout(reg) out);

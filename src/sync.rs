@@ -49,6 +49,7 @@ pub fn memory_write_hint<T>(val: *mut T) {
 #[allow(dead_code)]
 #[no_mangle]
 #[inline(always)]
+#[cfg(target_env = "")] // allow unit tests to link
 pub unsafe extern "C" fn __sync_synchronize() {}
 
 /// Runs a function with IRQs disabled.
