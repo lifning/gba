@@ -3,6 +3,7 @@
 #![feature(global_asm)]
 #![feature(isa_attribute)]
 #![feature(generic_const_exprs)]
+#![allow(incomplete_features)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(dead_code)]

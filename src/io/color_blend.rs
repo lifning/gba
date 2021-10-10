@@ -8,7 +8,7 @@ pub const BLDCNT: VolAddress<ColorEffectSetting, Safe, Safe> =
 
 newtype! {
   /// TODO: docs
-  ColorEffectSetting, u16
+  ColorEffectSetting, pub u16
 }
 
 impl ColorEffectSetting {
@@ -43,13 +43,13 @@ newtype_enum! {
   BrightnessDecrease = 3,
 }
 
-/// Alpha Blending Coefficients (R/W) (not W)
+/// Alpha Blending Coefficients (R/W)
 pub const BLDALPHA: VolAddress<AlphaBlendingSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0052) };
 
 newtype! {
   /// TODO: docs
-  AlphaBlendingSetting, u16
+  AlphaBlendingSetting, pub u16
 }
 
 impl AlphaBlendingSetting {
@@ -65,12 +65,12 @@ pub const BLDY: VolAddress<BrightnessSetting, Safe, Safe> = unsafe { VolAddress:
 
 newtype! {
   /// TODO: docs
-  BrightnessSetting, u32
+  BrightnessSetting, pub u16
 }
 
 impl BrightnessSetting {
   phantom_fields! {
-    self.0: u32,
+    self.0: u16,
     evy_coefficient: 0-4,
   }
 }
