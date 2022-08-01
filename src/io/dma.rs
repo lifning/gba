@@ -61,27 +61,26 @@
 
 use super::*;
 
-newtype! {
-  /// Allows you to configure a DMA unit.
-  DMAControlSetting, u16
-}
+/// Allows you to configure a DMA unit.
 #[allow(missing_docs)]
-impl DMAControlSetting {
-  phantom_fields! {
-    self.0: u16,
-    dest_address_control: 5-6=DMADestAddressControl<Increment, Decrement, Fixed, IncrementReload>,
-    source_address_control: 7-8=DMASrcAddressControl<Increment, Decrement, Fixed>,
-    dma_repeat: 9,
-    use_32bit: 10,
-    start_time: 12-13=DMAStartTiming<Immediate, VBlank, HBlank, Special>,
-    irq_when_done: 14,
-    enabled: 15,
-  }
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Copy, Clone)]
+pub struct DMAControlSetting {
+  #[skip] __0: B5,
+  pub dest_address_control: DMADestAddressControl,
+  pub source_address_control: DMASrcAddressControl,
+  pub dma_repeat: bool,
+  pub use_32bit: bool,
+  #[skip] __1: bool,
+  pub start_time: DMAStartTiming,
+  pub irq_when_done: bool,
+  pub enabled: bool,
 }
 
 /// Sets how the destination address should be adjusted per data transfer.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u16)]
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
 pub enum DMADestAddressControl {
   /// Offset +1
   Increment = 0,
@@ -96,8 +95,8 @@ pub enum DMADestAddressControl {
 /// Sets how the source address should be adjusted per data transfer.
 ///
 /// Note that only 0,1,2 are allowed, 3 is prohibited.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u16)]
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
 pub enum DMASrcAddressControl {
   /// Offset +1
   Increment = 0,
@@ -108,8 +107,8 @@ pub enum DMASrcAddressControl {
 }
 
 /// Sets when the DMA should activate.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u16)]
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
 pub enum DMAStartTiming {
   /// Causes the DMA to start as soon as possible (2 wait cycles after enabled)
   Immediate = 0,

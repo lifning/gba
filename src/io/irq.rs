@@ -100,30 +100,25 @@
 
 use super::*;
 
-newtype!(
-  /// A newtype over all interrupt flags.
-  IrqFlags,
-  pub(crate) u16
-);
-
-impl IrqFlags {
-  phantom_fields! {
-    self.0: u16,
-    vblank: 0,
-    hblank: 1,
-    vcounter: 2,
-    timer0: 3,
-    timer1: 4,
-    timer2: 5,
-    timer3: 6,
-    serial: 7,
-    dma0: 8,
-    dma1: 9,
-    dma2: 10,
-    dma3: 11,
-    keypad: 12,
-    game_pak: 13,
-  }
+/// All interrupt flags.
+#[bitfield(bits = 16)]
+#[repr(u16)]
+pub struct IrqFlags {
+  pub vblank: bool,
+  pub hblank: bool,
+  pub vcounter: bool,
+  pub timer0: bool,
+  pub timer1: bool,
+  pub timer2: bool,
+  pub timer3: bool,
+  pub serial: bool,
+  pub dma0: bool,
+  pub dma1: bool,
+  pub dma2: bool,
+  pub dma3: bool,
+  pub keypad: bool,
+  pub game_pak: bool,
+  #[skip] __0: B2,
 }
 
 /// Interrupt Enable Register. Read/Write.
@@ -141,18 +136,17 @@ pub const IE: VolAddress<IrqFlags, Safe, Unsafe> = unsafe { VolAddress::new(0x40
 /// when it is called.
 pub const IF: VolAddress<IrqFlags, Safe, Unsafe> = unsafe { VolAddress::new(0x400_0202) };
 
-newtype! {
-    /// Setting to control whether interrupts are enabled.
-    IrqEnableSetting, u16
+/// Setting to control whether interrupts are enabled.
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Copy, Clone)]
+pub struct IrqEnableSetting {
+  /// System-wide control for if interrupts of all kinds are enabled or not.
+  pub interrupts_enabled: bool,
+  #[skip] __0: B15,
 }
 
 impl IrqEnableSetting {
-  phantom_fields! {
-    self.0: u16,
-    /// System-wide control for if interrupts of all kinds are enabled or not.
-    interrupts_enabled: 0,
-  }
-
   /// Yes, you want to have interrupts.
   pub const IRQ_YES: Self = Self::new().with_interrupts_enabled(true);
 

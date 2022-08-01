@@ -8,50 +8,47 @@ use super::*;
 pub const DISPCNT: VolAddress<DisplayControlSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0000) };
 
-newtype!(
-  /// Setting for the display control register.
-  ///
-  /// * 0-2: `DisplayMode`
-  /// * 3: CGB mode flag
-  /// * 4: Display frame 1 (Modes 4/5 only)
-  /// * 5: "hblank interval free", allows full access to OAM during hblank
-  /// * 6: Object tile memory 1-dimensional
-  /// * 7: Force vblank
-  /// * 8: Display bg0 layer
-  /// * 9: Display bg1 layer
-  /// * 10: Display bg2 layer
-  /// * 11: Display bg3 layer
-  /// * 12: Display objects layer
-  /// * 13: Window 0 display
-  /// * 14: Window 1 display
-  /// * 15: Object window
-  DisplayControlSetting,
-  u16
-);
-
+/// Setting for the display control register.
+///
+/// * 0-2: `DisplayMode`
+/// * 3: CGB mode flag
+/// * 4: Display frame 1 (Modes 4/5 only)
+/// * 5: "hblank interval free", allows full access to OAM during hblank
+/// * 6: Object tile memory 1-dimensional
+/// * 7: Force vblank
+/// * 8: Display bg0 layer
+/// * 9: Display bg1 layer
+/// * 10: Display bg2 layer
+/// * 11: Display bg3 layer
+/// * 12: Display objects layer
+/// * 13: Window 0 display
+/// * 14: Window 1 display
+/// * 15: Object window
 #[allow(missing_docs)]
-impl DisplayControlSetting {
-  phantom_fields! {
-    self.0: u16,
-    mode: 0-2=DisplayMode<Mode0, Mode1, Mode2, Mode3, Mode4, Mode5>,
-    frame1: 4,
-    hblank_interval_free: 5,
-    oam_memory_1d: 6,
-    force_vblank: 7,
-    bg0: 8,
-    bg1: 9,
-    bg2: 10,
-    bg3: 11,
-    obj: 12,
-    win0: 13,
-    win1: 14,
-    obj_window: 15,
-  }
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Copy, Clone)]
+pub struct DisplayControlSetting {
+  pub mode: DisplayMode,
+  #[skip] __0: bool,
+  pub frame1: bool,
+  pub hblank_interval_free: bool,
+  pub oam_memory_1d: bool,
+  pub force_vblank: bool,
+  pub bg0: bool,
+  pub bg1: bool,
+  pub bg2: bool,
+  pub bg3: bool,
+  pub obj: bool,
+  pub win0: bool,
+  pub win1: bool,
+  pub obj_window: bool,
 }
 
-newtype_enum! {
-  /// The six display modes available on the GBA.
-  DisplayMode = u16,
+/// The six display modes available on the GBA.
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 3]
+pub enum DisplayMode {
   /// * Affine: No
   /// * Layers: 0/1/2/3
   /// * Size(px): 256x256 to 512x512
@@ -100,23 +97,18 @@ pub fn display_control() -> DisplayControlSetting {
 pub const DISPSTAT: VolAddress<DisplayStatusSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0004) };
 
-newtype!(
-  /// A newtype over display status and interrupt control values.
-  DisplayStatusSetting,
-  u16
-);
-
-impl DisplayStatusSetting {
-  phantom_fields! {
-    self.0: u16,
-    vblank_flag: 0,
-    hblank_flag: 1,
-    vcounter_flag: 2,
-    vblank_irq_enable: 3,
-    hblank_irq_enable: 4,
-    vcounter_irq_enable: 5,
-    vcount_setting: 8-15,
-  }
+/// Display status and interrupt control values.
+#[bitfield(bits = 16)]
+#[repr(u16)]
+pub struct DisplayStatusSetting {
+  pub vblank_flag: bool,
+  pub hblank_flag: bool,
+  pub vcounter_flag: bool,
+  pub vblank_irq_enable: bool,
+  pub hblank_irq_enable: bool,
+  pub vcounter_irq_enable: bool,
+  #[skip] __0: B2,
+  pub vcount_setting: B8,
 }
 
 /// Vertical Counter (LY). Read only.
@@ -132,30 +124,26 @@ pub const VBLANK_SCANLINE: u16 = 160;
 /// Global mosaic effect control. Write-only.
 pub const MOSAIC: VolAddress<MosaicSetting, Safe, Safe> = unsafe { VolAddress::new(0x400_004C) };
 
-newtype! {
-  /// Allows control of the Mosaic effect.
-  ///
-  /// Values are the _increase_ for each top-left pixel to be duplicated in the
-  /// final result. If you want to duplicate some other pixel than the top-left,
-  /// you can offset the background or object by an appropriate amount.
-  ///
-  /// 0) No effect (1+0)
-  /// 1) Each pixel becomes 2 pixels (1+1)
-  /// 2) Each pixel becomes 3 pixels (1+2)
-  /// 3) Each pixel becomes 4 pixels (1+3)
-  ///
-  /// * Bits 0-3: BG mosaic horizontal increase
-  /// * Bits 4-7: BG mosaic vertical increase
-  /// * Bits 8-11: Object mosaic horizontal increase
-  /// * Bits 12-15: Object mosaic vertical increase
-  MosaicSetting, u16
-}
-impl MosaicSetting {
-  phantom_fields! {
-    self.0: u16,
-    bg_horizontal_inc: 0-3,
-    bg_vertical_inc: 4-7,
-    obj_horizontal_inc: 8-11,
-    obj_vertical_inc: 12-15,
-  }
+/// Allows control of the Mosaic effect.
+///
+/// Values are the _increase_ for each top-left pixel to be duplicated in the
+/// final result. If you want to duplicate some other pixel than the top-left,
+/// you can offset the background or object by an appropriate amount.
+///
+/// 0) No effect (1+0)
+/// 1) Each pixel becomes 2 pixels (1+1)
+/// 2) Each pixel becomes 3 pixels (1+2)
+/// 3) Each pixel becomes 4 pixels (1+3)
+///
+/// * Bits 0-3: BG mosaic horizontal increase
+/// * Bits 4-7: BG mosaic vertical increase
+/// * Bits 8-11: Object mosaic horizontal increase
+/// * Bits 12-15: Object mosaic vertical increase
+#[bitfield(bits = 16)]
+#[repr(u16)]
+pub struct  MosaicSetting {
+  pub bg_horizontal_inc: B4,
+  pub bg_vertical_inc: B4,
+  pub obj_horizontal_inc: B4,
+  pub obj_vertical_inc: B4,
 }

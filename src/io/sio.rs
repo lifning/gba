@@ -12,49 +12,46 @@ pub const SIODATA8: VolAddress<u16, Safe, Safe> = unsafe { VolAddress::new(0x400
 /// General IO Control. Read/Write.
 pub const RCNT: VolAddress<IoControlSetting, Safe, Safe> = unsafe { VolAddress::new(0x400_0134) };
 
-newtype!(
-  /// Setting for the serial IO control register.
-  ///
-  /// * 0-1: `BaudRate`
-  /// * 2: Use hardware flow control
-  /// * 3: Use odd parity instead of even
-  /// * 4: TX buffer is full
-  /// * 5: RX buffer is empty
-  /// * 6: Error occurred
-  /// * 7: Use 8-bit data length instead of 7-bit
-  /// * 8: Use hardware FIFO
-  /// * 9: Enable parity check
-  /// * 10: Enable data receive
-  /// * 11: Enable data transmit
-  /// * 12-13: `SioMode`
-  /// * 14: Trigger interrupt on RX
-  SioControlSetting,
-  u16
-);
-
+/// Setting for the serial IO control register.
+///
+/// * 0-1: `BaudRate`
+/// * 2: Use hardware flow control
+/// * 3: Use odd parity instead of even
+/// * 4: TX buffer is full
+/// * 5: RX buffer is empty
+/// * 6: Error occurred
+/// * 7: Use 8-bit data length instead of 7-bit
+/// * 8: Use hardware FIFO
+/// * 9: Enable parity check
+/// * 10: Enable data receive
+/// * 11: Enable data transmit
+/// * 12-13: `SioMode`
+/// * 14: Trigger interrupt on RX
 #[allow(missing_docs)]
-impl SioControlSetting {
-  phantom_fields! {
-      self.0: u16,
-      baud_rate: 0-1=BaudRate<Bps9600,Bps38400,Bps57600,Bps115200>,
-      flow_control: 2,
-      parity_odd: 3,
-      tx_full: 4,
-      rx_empty: 5,
-      error: 6,
-      data_length_8bit: 7,
-      fifo_enable:8,
-      parity_enable: 9,
-      tx_enable: 10,
-      rx_enable: 11,
-      mode: 12-13=SioMode<Normal8Bit,MultiPlayer,Normal32Bit,Uart>,
-      irq_enable: 14,
-  }
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SioControlSetting {
+  pub baud_rate: BaudRate,
+  pub flow_control: bool,
+  pub parity_odd: bool,
+  pub tx_full: bool,
+  pub rx_empty: bool,
+  pub error: bool,
+  pub data_length_8bit: bool,
+  pub fifo_enable: bool,
+  pub parity_enable: bool,
+  pub tx_enable: bool,
+  pub rx_enable: bool,
+  pub mode: SioMode,
+  pub irq_enable: bool,
+  #[skip] __0: bool,
 }
 
-newtype_enum! {
-    /// Supported baud rates.
-    BaudRate = u16,
+/// Supported baud rates.
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
+pub enum BaudRate {
     /// * 9600 bps
     Bps9600 = 0,
     /// * 38400 bps
@@ -65,9 +62,10 @@ newtype_enum! {
     Bps115200 = 3,
 }
 
-newtype_enum! {
-    /// Serial IO modes.
-    SioMode = u16,
+/// Serial IO modes.
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
+pub enum SioMode {
     /// * Normal mode: 8-bit data
     Normal8Bit = 0,
     /// * Multiplayer mode: 16-bit data
@@ -78,43 +76,40 @@ newtype_enum! {
     Uart = 3,
 }
 
-newtype!(
-  /// Setting for the general IO control register.
-  ///
-  /// * 0: SC state
-  /// * 1: SD state
-  /// * 2: SI state
-  /// * 3: SO state
-  /// * 4: Set SC as output, instead of input
-  /// * 5: Set SD as output, instead of input
-  /// * 6: Set SI as output, instead of input
-  /// * 7: Set SO as output, instead of input
-  /// * 8: Trigger interrupt on SI change
-  /// * 14-15: `IoMode`
-  IoControlSetting,
-  u16
-);
-
+/// Setting for the general IO control register.
+///
+/// * 0: SC state
+/// * 1: SD state
+/// * 2: SI state
+/// * 3: SO state
+/// * 4: Set SC as output, instead of input
+/// * 5: Set SD as output, instead of input
+/// * 6: Set SI as output, instead of input
+/// * 7: Set SO as output, instead of input
+/// * 8: Trigger interrupt on SI change
+/// * 14-15: `IoMode`
 #[allow(missing_docs)]
-impl IoControlSetting {
-  phantom_fields! {
-      self.0: u16,
-      sc: 0,
-      sd: 1,
-      si: 2,
-      so: 3,
-      sc_output_enable: 4,
-      sd_output_enable: 5,
-      si_output_enable: 6,
-      so_output_enable: 7,
-      si_irq_enable: 8,
-      mode: 14-15=IoMode<Disabled,GPIO,JoyBus>,
-  }
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct IoControlSetting {
+  pub sc: bool,
+  pub sd: bool,
+  pub si: bool,
+  pub so: bool,
+  pub sc_output_enable: bool,
+  pub sd_output_enable: bool,
+  pub si_output_enable: bool,
+  pub so_output_enable: bool,
+  pub si_irq_enable: bool,
+  #[skip] __0: B5,
+  pub mode: IoMode,
 }
 
-newtype_enum! {
-    /// General IO modes.
-    IoMode = u16,
+/// General IO modes.
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
+pub enum IoMode {
     /// * IO disabled
     Disabled = 0,
     /// * General Purpose IO

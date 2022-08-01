@@ -55,30 +55,29 @@ pub const TM2CNT_H: VolAddress<TimerControlSetting, Safe, Safe> =
 pub const TM3CNT_H: VolAddress<TimerControlSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_010E) };
 
-newtype! {
-  /// Allows control of a timer unit.
-  ///
-  /// * Bits 0-2: How often the timer should tick up one unit. You can either
-  ///   specify a number of CPU cycles or "cascade" mode, where there's a single
-  ///   tick per overflow of the next lower timer. For example, Timer 1 would
-  ///   tick up once per overflow of Timer 0 if it were in cascade mode. Cascade
-  ///   mode naturally does nothing when used with Timer 0.
-  /// * Bit 6: Raise a timer interrupt upon overflow.
-  /// * Bit 7: Enable the timer.
-  TimerControlSetting, u16
-}
-impl TimerControlSetting {
-  phantom_fields! {
-    self.0: u16,
-    tick_rate: 0-2=TimerTickRate<CPU1, CPU64, CPU256, CPU1024, Cascade>,
-    overflow_irq: 6,
-    enabled: 7,
-  }
+/// Allows control of a timer unit.
+///
+/// * Bits 0-2: How often the timer should tick up one unit. You can either
+///   specify a number of CPU cycles or "cascade" mode, where there's a single
+///   tick per overflow of the next lower timer. For example, Timer 1 would
+///   tick up once per overflow of Timer 0 if it were in cascade mode. Cascade
+///   mode naturally does nothing when used with Timer 0.
+/// * Bit 6: Raise a timer interrupt upon overflow.
+/// * Bit 7: Enable the timer.
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct TimerControlSetting {
+  pub tick_rate: TimerTickRate,
+  #[skip] __0: B3,
+  pub overflow_irq: bool,
+  pub enabled: bool,
+  #[skip] __1: B8,
 }
 
 /// Controls how often an enabled timer ticks upward.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u16)]
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 3]
 pub enum TimerTickRate {
   /// Once every CPU cycle
   CPU1 = 0,

@@ -3,6 +3,9 @@
 #![feature(global_asm)]
 #![feature(isa_attribute)]
 #![feature(generic_const_exprs)]
+#![feature(macro_attributes_in_derive_output)]
+#![feature(const_mut_refs)]
+#![feature(const_trait_impl)]
 #![allow(incomplete_features)]
 #![allow(unused_imports)]
 #![allow(unused_variables)]
@@ -24,32 +27,20 @@
 //! **Do not** use this crate in programs that aren't running on the GBA. If you
 //! do, it's a giant bag of Undefined Behavior.
 
-pub(crate) use gba_proc_macro::phantom_fields;
-
 use voladdress::*;
+use modular_bitfield::prelude::*;
 
 pub mod macros;
-
 pub mod bios;
-
 pub mod iwram;
-
 pub mod ewram;
-
 pub mod io;
-
 pub mod palram;
-
 pub mod vram;
-
 pub mod oam;
-
 pub mod rom;
-
 pub mod save;
-
 pub mod sync;
-
 pub mod debug;
 
 extern "C" {
@@ -64,10 +55,15 @@ extern "C" {
   pub static __bss_end: u8;
 }
 
-newtype! {
-  /// A color on the GBA is an RGB 5.5.5 within a `u16`
-  #[derive(PartialOrd, Ord, Hash)]
-  Color, pub u16
+/// A color on the GBA is an RGB 5.5.5 within a `u16`
+#[derive(Copy, Clone)]
+#[bitfield(bits = 16)]
+#[repr(u16)]
+pub struct Color {
+  pub red: B5,
+  pub green: B5,
+  pub blue: B5,
+  pub sub_green: bool,
 }
 
 impl Color {
@@ -76,13 +72,7 @@ impl Color {
   /// No actual checks are performed, so illegal channel values can overflow
   /// into each other and produce an unintended color.
   pub const fn from_rgb(r: u16, g: u16, b: u16) -> Color {
-    Color(b << 10 | g << 5 | r)
-  }
-  phantom_fields! {
-    self.0: u16,
-    red: 0-4,
-    green: 5-9,
-    blue: 10-14,
+    Color::new().with_red(r as u8).with_green(g as u8).with_blue(b as u8)
   }
 }
 

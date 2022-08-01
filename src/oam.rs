@@ -2,32 +2,29 @@
 
 use super::*;
 
-newtype! {
-  /// 0th part of an object's attributes.
-  ///
-  /// * Bits 0-7: row-coordinate
-  /// * Bits 8-9: Rendering style: Normal, Affine, Disabled, Double Area Affine
-  /// * Bits 10-11: Object mode: Normal, SemiTransparent, Object Window
-  /// * Bit 12: Mosaic
-  /// * Bit 13: is 8bpp
-  /// * Bits 14-15: Object Shape: Square, Horizontal, Vertical
-  OBJAttr0, u16
-}
-impl OBJAttr0 {
-  phantom_fields! {
-    self.0: u16,
-    row_coordinate: 0-7,
-    obj_rendering: 8-9=ObjectRender<Normal, Affine, Disabled, DoubleAreaAffine>,
-    obj_mode: 10-11=ObjectMode<Normal, SemiTransparent, OBJWindow>,
-    mosaic: 12,
-    is_8bpp: 13,
-    obj_shape: 14-15=ObjectShape<Square, Horizontal, Vertical>,
-  }
+/// 0th part of an object's attributes.
+///
+/// * Bits 0-7: row-coordinate
+/// * Bits 8-9: Rendering style: Normal, Affine, Disabled, Double Area Affine
+/// * Bits 10-11: Object mode: Normal, SemiTransparent, Object Window
+/// * Bit 12: Mosaic
+/// * Bit 13: is 8bpp
+/// * Bits 14-15: Object Shape: Square, Horizontal, Vertical
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct OBJAttr0 {
+  pub row_coordinate: B8,
+  pub obj_rendering: ObjectRender,
+  pub obj_mode: ObjectMode,
+  pub mosaic: bool,
+  pub is_8bpp: bool,
+  pub obj_shape: ObjectShape,
 }
 
 /// What style of rendering for this object
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u16)]
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
 pub enum ObjectRender {
   /// Standard, non-affine rendering
   Normal = 0,
@@ -40,8 +37,8 @@ pub enum ObjectRender {
 }
 
 /// What mode to ues for the object.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u16)]
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
 pub enum ObjectMode {
   /// Show the object normally
   Normal = 0,
@@ -55,8 +52,8 @@ pub enum ObjectMode {
 /// What shape the object's appearance should be.
 ///
 /// The specifics also depend on the `ObjectSize` set.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u16)]
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
 pub enum ObjectShape {
   /// Equal parts wide and tall
   Square = 0,
@@ -66,32 +63,64 @@ pub enum ObjectShape {
   Vertical = 2,
 }
 
-newtype! {
-  /// 1st part of an object's attributes.
-  ///
-  /// * Bits 0-8: column coordinate
-  /// * Bits 9-13:
-  ///   * Normal render: Bit 12 holds hflip and 13 holds vflip.
-  ///   * Affine render: The affine parameter selection.
-  /// * Bits 14-15: Object Size
-  OBJAttr1, u16
+/// 1st part of an object's attributes.
+///
+/// * Bits 0-8: column coordinate
+/// * Bits 9-13:
+///   * Normal render: Bit 12 holds hflip and 13 holds vflip.
+///   * Affine render: The affine parameter selection.
+/// * Bits 14-15: Object Size
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct OBJAttr1 {
+  pub col_coordinate: B9,
+  pub affine_index: B5,
+  pub obj_size: ObjectSize,
 }
+
 impl OBJAttr1 {
-  phantom_fields! {
-    self.0: u16,
-    col_coordinate: 0-8,
-    affine_index: 9-13,
-    hflip: 12,
-    vflip: 13,
-    obj_size: 14-15=ObjectSize<Zero, One, Two, Three>,
+  pub const fn hflip(&self) -> bool {
+    (self.affine_index() & 0b01000) != 0
+  }
+  pub const fn vflip(&self) -> bool {
+    (self.affine_index() & 0b10000) != 0
+  }
+  pub const fn with_hflip(self, hflip: bool) -> Self {
+    if hflip {
+      self.with_affine_index(self.affine_index() | 0b01000)
+    } else {
+      self.with_affine_index(self.affine_index() & 0b10111)
+    }
+  }
+  pub const fn with_vflip(self, vflip: bool) -> Self {
+    if vflip {
+      self.with_affine_index(self.affine_index() | 0b10000)
+    } else {
+      self.with_affine_index(self.affine_index() & 0b01111)
+    }
+  }
+  pub fn set_hflip(&mut self, hflip: bool) {
+    if hflip {
+      self.set_affine_index(self.affine_index() | 0b01000)
+    } else {
+      self.set_affine_index(self.affine_index() & 0b10111)
+    }
+  }
+  pub fn set_vflip(&mut self, vflip: bool) {
+    if vflip {
+      self.set_affine_index(self.affine_index() | 0b10000)
+    } else {
+      self.set_affine_index(self.affine_index() & 0b01111)
+    }
   }
 }
 
 /// The object's size.
 ///
 /// Also depends on the `ObjectShape` set.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u16)]
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
 pub enum ObjectSize {
   /// * Square: 8x8px
   /// * Horizontal: 16x8px
@@ -111,21 +140,18 @@ pub enum ObjectSize {
   Three = 3,
 }
 
-newtype! {
-  /// 2nd part of an object's attributes.
-  ///
-  /// * Bits 0-9: Base Tile Index (tile offset from CBB4)
-  /// * Bits 10-11: Priority
-  /// * Bits 12-15: Palbank (if using 4bpp)
-  OBJAttr2, u16
-}
-impl OBJAttr2 {
-  phantom_fields! {
-    self.0: u16,
-    tile_id: 0-9,
-    priority: 10-11,
-    palbank: 12-15,
-  }
+/// 2nd part of an object's attributes.
+///
+/// * Bits 0-9: Base Tile Index (tile offset from CBB4)
+/// * Bits 10-11: Priority
+/// * Bits 12-15: Palbank (if using 4bpp)
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct OBJAttr2 {
+  pub tile_id: B10,
+  pub priority: B2,
+  pub palbank: B4,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

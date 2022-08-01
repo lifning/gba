@@ -8,56 +8,65 @@ use super::*;
 pub const SOUND1CNT_L: VolAddress<SweepRegisterSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0060) };
 
-newtype! {
-  /// TODO: docs
-  SweepRegisterSetting, u16
-}
-
-impl SweepRegisterSetting {
-  phantom_fields! {
-    self.0: u16,
-    sweep_shift: 0-2,
-    sweep_decreasing: 3,
-    sweep_time: 4-6,
-  }
+/// TODO: docs
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SweepRegisterSetting {
+  pub sweep_shift: B3,
+  pub sweep_decreasing: bool,
+  /// units of 7.8ms (0-7, min=7.8ms, max=54.7ms)
+  pub sweep_time: B3,
+  #[skip] __0: B9,
 }
 
 /// Sound Channel 1 Duty/Length/Envelope (`NR11`, `NR12`). Read/Write.
 pub const SOUND1CNT_H: VolAddress<DutyLenEnvelopeSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0062) };
 
-newtype! {
-  /// TODO: docs
-  DutyLenEnvelopeSetting, u16
+/// TODO: docs
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct DutyLenEnvelopeSetting {
+  /// units of (64-n)/256s
+  pub sound_length: B6,
+  pub wave_pattern_duty: WaveDuty,
+  /// units of n/64s
+  pub envelope_step_time: B3,
+  pub envelope_increasing: bool,
+  pub initial_envelope_volume: B4,
 }
 
-impl DutyLenEnvelopeSetting {
-  phantom_fields! {
-    self.0: u16,
-    sound_length: 0-5,
-    wave_pattern_duty: 6-7, //TODO: enum this
-    envelope_step_time: 8-10,
-    envelope_increasing: 11,
-    initial_envelope_volume: 12-15,
-  }
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
+pub enum WaveDuty {
+  /// ` -_______-_______-_______ `
+  OneEighth = 0,
+  /// ` --______--______--______ `
+  OneQuarter = 1,
+  /// ` ----____----____----____ ` (normal)
+  OneHalf = 2,
+  /// ` ------__------__------__ `
+  ThreeQuarters = 3,
 }
 
 /// Sound Channel 1 Frequency/Control (`NR13`, `NR14`). Read/Write.
 pub const SOUND1CNT_X: VolAddress<FrequencyControlSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0064) };
 
-newtype! {
-  /// TODO: docs
-  FrequencyControlSetting, u32 // TODO: u16 or u32?
-}
-
-impl FrequencyControlSetting {
-  phantom_fields! {
-    self.0: u32,
-    frequency: 0-10,
-    length_flag: 14,
-    is_initial: 15,
-  }
+/// TODO: docs
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct FrequencyControlSetting {
+  /// 131072/(2048-n)Hz  (0-2047)
+  pub frequency: B11,
+  #[skip] __0: B3,
+  /// Stop output when [DutyLenEnvelopeSetting::sound_length] expires
+  pub length_flag: bool,
+  /// Restart Sound
+  pub is_initial: bool,
 }
 
 /// Sound Channel 2 Channel 2 Duty/Length/Envelope (`NR21`, `NR22`). Read/Write.
@@ -72,36 +81,31 @@ pub const SOUND2CNT_H: VolAddress<FrequencyControlSetting, Safe, Safe> =
 pub const SOUND3CNT_L: VolAddress<StopWaveRAMSelectSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0070) };
 
-newtype! {
-  /// TODO: docs
-  StopWaveRAMSelectSetting, u16
-}
-
-impl StopWaveRAMSelectSetting {
-  phantom_fields! {
-    self.0: u16,
-    wave_ram_dimension_2d: 5,
-    wave_ram_bank_number: 6,
-    sound_channel_3_playing: 7,
-  }
+/// TODO: docs
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct StopWaveRAMSelectSetting {
+  #[skip] __0: B5,
+  pub wave_ram_dimension_2d: bool,
+  pub wave_ram_bank_number: bool,
+  pub sound_channel_3_playing: bool,
+  #[skip] __1: B8,
 }
 
 /// Sound Channel 3 Length/Volume (`NR23`, `NR24`). Read/Write.
 pub const SOUND3CNT_H: VolAddress<LengthVolumeSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0072) };
 
-newtype! {
-  /// TODO: docs
-  LengthVolumeSetting, u16
-}
-
-impl LengthVolumeSetting {
-  phantom_fields! {
-    self.0: u16,
-    sound_length: 0-7,
-    sound_volume: 13-14,
-    force_75percent: 15,
-  }
+/// TODO: docs
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct LengthVolumeSetting {
+  pub sound_length: B8,
+  #[skip] __0: B5,
+  pub sound_volume: B2,
+  pub force_75percent: bool,
 }
 
 /// Sound Channel 3 Frequency/Control (`NR33`, `NR34`). Read/Write.
@@ -129,39 +133,32 @@ pub const WAVE_RAM3_H: VolAddress<u16, Safe, Safe> = unsafe { VolAddress::new(0x
 pub const SOUND4CNT_L: VolAddress<LengthEnvelopeSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0078) };
 
-newtype! {
-  /// TODO: docs
-  LengthEnvelopeSetting, u32 // TODO: is this u32?
-}
-
-impl LengthEnvelopeSetting {
-  phantom_fields! {
-    self.0: u32,
-    sound_length: 0-5,
-    envelope_step_time: 8-10,
-    envelope_increasing: 11,
-    initial_envelope_volume: 12-15,
-  }
+/// TODO: docs
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct LengthEnvelopeSetting {
+  pub sound_length: B6,
+  #[skip] __0: B2,
+  pub envelope_step_time: B3,
+  pub envelope_increasing: bool,
+  pub initial_envelope_volume: B4,
 }
 
 /// Sound Channel 4 Frequency/Control (`NR43`, `NR44`). Read/Write.
 pub const SOUND4CNT_H: VolAddress<NoiseFrequencySetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_007C) };
 
-newtype! {
-  /// TODO: docs
-  NoiseFrequencySetting, u32 // TODO: is this u32?
-}
-
-impl NoiseFrequencySetting {
-  phantom_fields! {
-    self.0: u32,
-    frequency_divide_ratio: 0-2,
-    counter_step_width_7bit: 3,
-    shift_clock_frequency: 4-7,
-    length_flag_stop: 14,
-    initial_restart: 15,
-  }
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct NoiseFrequencySetting {
+  pub frequency_divide_ratio: B3,
+  pub counter_step_width_7bit: bool,
+  pub shift_clock_frequency: B4,
+  #[skip] __0: B6,
+  pub length_flag_stop: bool,
+  pub initial_restart: bool,
 }
 
 // TODO: unify FIFO as
@@ -179,50 +176,55 @@ pub const FIFO_B_H: VolAddress<u16, Safe, Safe> = unsafe { VolAddress::new(0x400
 pub const SOUNDCNT_L: VolAddress<NonWaveVolumeEnableSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0080) };
 
-newtype! {
-  /// TODO: docs
-  NonWaveVolumeEnableSetting, u16
+/// TODO: docs
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct NonWaveVolumeEnableSetting {
+  pub right_master_volume: B3,
+  #[skip] __0: bool,
+  pub left_master_volume: B3,
+  #[skip] __1: bool,
+  pub right_enable_flags: SoundEnableFlags,
+  pub left_enable_flags: SoundEnableFlags,
 }
 
-impl NonWaveVolumeEnableSetting {
-  phantom_fields! {
-    self.0: u16,
-    right_master_volume: 0-2,
-    left_master_volume: 4-6,
-    right_enable_flags: 8-11, // TODO: this is junk
-    left_enable_flags: 12-15, // TODO: junk
-  }
+#[bitfield(bits = 4)]
+#[derive(BitfieldSpecifier, Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SoundEnableFlags {
+  pub sound1: bool,
+  pub sound2: bool,
+  pub sound3: bool,
+  pub sound4: bool,
 }
 
 /// DMA Sound Control/Mixing. Read/Write.
 pub const SOUNDCNT_H: VolAddress<WaveVolumeEnableSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0082) };
 
-newtype! {
-  /// TODO: docs
-  WaveVolumeEnableSetting, u16
+/// TODO: docs
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct WaveVolumeEnableSetting {
+  pub sound_number_volume: NumberSoundVolume,
+  pub dma_sound_a_full_volume: bool,
+  pub dma_sound_b_full_volume: bool,
+  #[skip] __0: B4,
+  pub dma_sound_a_enable_right: bool,
+  pub dma_sound_a_enable_left: bool,
+  pub dma_sound_a_timer_select: bool,
+  pub dma_sound_a_reset_fifo: bool,
+  pub dma_sound_b_enable_right: bool,
+  pub dma_sound_b_enable_left: bool,
+  pub dma_sound_b_timer_select: bool,
+  pub dma_sound_b_reset_fifo: bool,
 }
 
-impl WaveVolumeEnableSetting {
-  phantom_fields! {
-    self.0: u16,
-    sound_number_volume: 0-1=NumberSoundVolume<Quarter, Half, Full>,
-    dma_sound_a_full_volume: 2,
-    dma_sound_b_full_volume: 3,
-    dma_sound_a_enable_right: 8,
-    dma_sound_a_enable_left: 9,
-    dma_sound_a_timer_select: 10,
-    dma_sound_a_reset_fifo: 11,
-    dma_sound_b_enable_right: 12,
-    dma_sound_b_enable_left: 13,
-    dma_sound_b_timer_select: 14,
-    dma_sound_b_reset_fifo: 15,
-  }
-}
-
-newtype_enum! {
-  /// TODO: docs
-  NumberSoundVolume = u16,
+/// TODO: docs
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
+enum NumberSoundVolume {
   /// TODO: docs
   Quarter = 0,
   /// TODO: docs
@@ -235,35 +237,43 @@ newtype_enum! {
 pub const SOUNDCNT_X: VolAddress<SoundMasterSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0084) };
 
-newtype! {
-  /// TODO: docs
-  SoundMasterSetting, u16
-}
-
-impl SoundMasterSetting {
-  phantom_fields! {
-    self.0: u16,
-    sound1_on: 0,
-    sound2_on: 1,
-    sound3_on: 2,
-    sound4_on: 3,
-    psg_fifo_master_enabled: 7,
-  }
+/// TODO: docs
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SoundMasterSetting {
+  pub sound1_on: bool,
+  pub sound2_on: bool,
+  pub sound3_on: bool,
+  pub sound4_on: bool,
+  #[skip] __0: B3,
+  pub psg_fifo_master_enabled: bool,
+  #[skip] __1: B8,
 }
 
 /// Sound on/off (`NR52`). Read/Write.
 pub const SOUNDBIAS: VolAddress<SoundPWMSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_0088) };
 
-newtype! {
-  /// TODO: docs
-  SoundPWMSetting, u16
+/// TODO: docs
+#[bitfield(bits = 16)]
+#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct SoundPWMSetting {
+  #[skip] __0: bool,
+  pub bias_level: B9,
+  #[skip] __1: B4,
+  pub amplitude_resolution: AmplitudeResolution,
 }
 
-impl SoundPWMSetting {
-  phantom_fields! {
-    self.0: u16,
-    bias_level: 1-9,
-    amplitude_resolution: 14-15, // TODO: enum this
-  }
+/// TODO: docs
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
+pub enum AmplitudeResolution {
+  /// default, best for DMA channels A/B
+  NineBit32768Hz = 0,
+  EightBit65536Hz = 1,
+  SevenBit131072Hz = 2,
+  /// best for PSG channels 1-4
+  SixBit262144Hz = 3,
 }

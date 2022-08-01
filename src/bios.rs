@@ -102,26 +102,23 @@ pub unsafe fn register_ram_reset(flags: RegisterRAMResetFlags) {
   }
   #[cfg(target_arch = "arm")]
   {
-    asm!("swi 0x010000", in("r0") flags.0);
+    asm!("swi 0x010000", in("r0") u8::from(flags));
   }
 }
-newtype! {
-  /// Flags for use with `register_ram_reset`.
-  RegisterRAMResetFlags, u8
-}
+
+/// Flags for use with `register_ram_reset`.
 #[allow(missing_docs)]
-impl RegisterRAMResetFlags {
-  phantom_fields! {
-    self.0: u8,
-    ewram: 0,
-    iwram: 1,
-    palram: 2,
-    vram: 3,
-    oam: 4,
-    sio: 5,
-    sound: 6,
-    other_io: 7,
-  }
+#[bitfield(bits = 8)]
+#[repr(u8)]
+pub struct RegisterRAMResetFlags {
+  pub ewram: bool,
+  pub iwram: bool,
+  pub palram: bool,
+  pub vram: bool,
+  pub oam: bool,
+  pub sio: bool,
+  pub sound: bool,
+  pub other_io: bool,
 }
 
 /// (`swi 0x02`) Halts the CPU until an interrupt occurs.
@@ -192,7 +189,7 @@ pub fn interrupt_wait(ignore_current_flags: bool, target_flags: IrqFlags) {
       asm!(
           "swi 0x040000",
           in("r0") ignore_current_flags as u8,
-          in("r1") target_flags.0,
+          in("r1") u16::from(target_flags),
       );
     }
   }
@@ -554,15 +551,12 @@ pub enum BitUnpackDestinationBitWidth {
   ThirtyTwo = 32,
 }
 
-newtype!(BitUnPackDataParams, pub u32);
-
 #[allow(missing_docs)]
-impl BitUnPackDataParams {
-  phantom_fields! {
-    self.0: u32,
-    data_offset: 0-30,
-    zero_data: 31,
-  }
+#[bitfield(bits = 32)]
+#[repr(u32)]
+pub struct BitUnPackDataParams {
+  pub data_offset: B31,
+  pub zero_data: bool,
 }
 
 #[repr(C, packed)]
@@ -828,8 +822,8 @@ pub struct SoundChannel {
     _r4: [u8; 4],
 }
 
-#[repr(packed, C)]
 // TODO: better constraint, it needs to be a plain array (not a pointer!)
+#[repr(packed, C)]
 pub struct WaveData<const SIZE: usize> {
     _type: u16,
     /// At the present time, non-looped (1 shot) waveform is 0000h and forward loop is 4000h.

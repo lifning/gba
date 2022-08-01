@@ -58,7 +58,7 @@ impl Mode3 {
   ///
   /// Takes ~430,000 cycles (~1.5 frames).
   pub fn clear_to(color: Color) {
-    let color32 = color.0 as u32;
+    let color32 = u16::from(color) as u32;
     let bulk_color = color32 << 16 | color32;
     for va in Self::WORDS_BLOCK.iter() {
       va.write(bulk_color)
@@ -70,7 +70,7 @@ impl Mode3 {
   /// Takes ~61,500 frames (~73% of VBlank)
   pub fn dma_clear_to(color: Color) {
     use crate::io::dma::DMA3;
-    let color32 = color.0 as u32;
+    let color32 = u16::from(color) as u32;
     let bulk_color = color32 << 16 | color32;
     unsafe {
       DMA3::fill32(&bulk_color, VRAM_BASE_USIZE as *mut u32, Self::WORDS_BLOCK.len() as u16)
@@ -373,7 +373,7 @@ impl Mode5 {
   ///
   /// Takes ~215,000 cycles (~76% of a frame)
   pub fn clear_to(page: Page, color: Color) {
-    let color32 = color.0 as u32;
+    let color32 = u16::from(color) as u32;
     let bulk_color = color32 << 16 | color32;
     let words = match page {
       Page::Zero => Self::PAGE0_WORDS,
@@ -390,7 +390,7 @@ impl Mode5 {
   pub fn dma_clear_to(page: Page, color: Color) {
     use crate::io::dma::DMA3;
 
-    let color32 = color.0 as u32;
+    let color32 = u16::from(color) as u32;
     let bulk_color = color32 << 16 | color32;
     let words_address = match page {
       Page::Zero => Self::PAGE0_WORDS.index(0).as_usize(),

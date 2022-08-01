@@ -15,29 +15,26 @@ pub const BG2CNT: VolAddress<BackgroundControlSetting, Safe, Safe> =
 pub const BG3CNT: VolAddress<BackgroundControlSetting, Safe, Safe> =
   unsafe { VolAddress::new(0x400_000E) };
 
-newtype! {
-  /// Allows configuration of a background layer.
-  ///
-  /// Bits 0-1: BG Priority (lower number is higher priority, like an index)
-  /// Bits 2-3: Character Base Block (0 through 3, 16k each)
-  /// Bit 6: Mosaic mode
-  /// Bit 7: is 8bpp
-  /// Bit 8-12: Screen Base Block (0 through 31, 2k each)
-  /// Bit 13: Display area overflow wraps (otherwise transparent, affine BG only)
-  /// Bit 14-15: Screen Size
-  BackgroundControlSetting, u16
-}
-impl BackgroundControlSetting {
-  phantom_fields! {
-    self.0: u16,
-    bg_priority: 0-1,
-    char_base_block: 2-3,
-    mosaic: 6,
-    is_8bpp: 7,
-    screen_base_block: 8-12,
-    affine_display_overflow_wrapping: 13,
-    size: 14-15=BGSize<Zero, One, Two, Three>,
-  }
+/// Allows configuration of a background layer.
+///
+/// Bits 0-1: BG Priority (lower number is higher priority, like an index)
+/// Bits 2-3: Character Base Block (0 through 3, 16k each)
+/// Bit 6: Mosaic mode
+/// Bit 7: is 8bpp
+/// Bit 8-12: Screen Base Block (0 through 31, 2k each)
+/// Bit 13: Display area overflow wraps (otherwise transparent, affine BG only)
+/// Bit 14-15: Screen Size
+#[bitfield(bits = 16)]
+#[repr(u16)]
+pub struct BackgroundControlSetting {
+  pub bg_priority: B2,
+  pub char_base_block: B2,
+  #[skip] __0: B2,
+  pub mosaic: bool,
+  pub is_8bpp: bool,
+  pub screen_base_block: B5,
+  pub affine_display_overflow_wrapping: bool,
+  pub size: BGSize,
 }
 
 /// The size of a background.
@@ -52,8 +49,8 @@ impl BackgroundControlSetting {
 /// * In affine mode, the screen base block determines where to start reading
 ///   data followed by the size of data as shown. The number of tiles varies
 ///   according to the size used.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u16)]
+#[derive(BitfieldSpecifier, Debug, Clone, Copy, PartialEq, Eq)]
+#[bits = 2]
 pub enum BGSize {
   /// * Text: 256x256px (2k)
   /// * Affine: 128x128px (256b)
