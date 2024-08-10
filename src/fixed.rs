@@ -284,6 +284,7 @@ macro_rules! impl_signed_fixed_ops {
       }
     }
     impl_trait_op_unit!($t, Neg, neg);
+    #[cfg(feature = "on_gba")]
     impl<const B: u32> core::fmt::Debug for Fixed<$t, B> {
       #[inline]
       fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
@@ -296,6 +297,18 @@ macro_rules! impl_signed_fixed_ops {
         } else {
           write!(f, "{whole}+{fract}/{divisor}")
         }
+      }
+    }
+    #[cfg(not(feature = "on_gba"))]
+    impl<const B: u32> core::fmt::Debug for Fixed<$t, B> {
+      #[inline]
+      fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        let raw: $t = self.into_raw();
+        write!(
+          f,
+          concat!("Fixed::<", stringify!($t), "{}>::from_raw({})"),
+          B, raw
+        )
       }
     }
   };
