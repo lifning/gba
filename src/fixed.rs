@@ -364,10 +364,10 @@ macro_rules! impl_signed_fixed_ops {
     impl<const B: u32> core::fmt::Debug for Fixed<$t, B> {
       #[inline]
       fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        let raw: $t = self.into_raw();
+        let raw: $t = self.to_bits();
         write!(
           f,
-          concat!("Fixed::<", stringify!($t), "{}>::from_raw({})"),
+          concat!("Fixed::<", stringify!($t), "{}>::from_bits({})"),
           B, raw
         )
       }
