@@ -5,6 +5,7 @@
 #![allow(clippy::let_and_return)]
 #![allow(clippy::result_unit_err)]
 #![warn(clippy::missing_inline_in_public_items)]
+#![feature(const_trait_impl)]
 
 //! A crate for GBA development.
 //!
