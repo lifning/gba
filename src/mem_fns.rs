@@ -3,7 +3,97 @@
 //! Generally you don't need to call these yourself. Instead, the compiler will
 //! insert calls to the functions defined here as necessary.
 
-use core::ffi::c_void;
+#![allow(non_upper_case_globals)]
+#![allow(unused_variables)]
+
+use core::{ffi::c_void, fmt::Write};
+
+const STATS_SIZE: usize = 4096;
+#[link_section = ".ewram"]
+static mut STATS_memcpy: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memcpy1: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memcpy2: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memcpy4: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memcpy8: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_libc_memcpy: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_reverse_copy_u8: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_reverse_copy_u16: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_reverse_copy_u32: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memmove: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memmove4: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memmove8: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_libc_memmove: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memset: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memset4: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memset8: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memclr: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memclr4: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_memclr8: [u16; STATS_SIZE] = [0; STATS_SIZE];
+#[link_section = ".ewram"]
+static mut STATS_libc_memset: [u16; STATS_SIZE] = [0; STATS_SIZE];
+
+static mut STATS_uread4: u16 = 0;
+static mut STATS_uwrite4: u16 = 0;
+static mut STATS_uread8: u16 = 0;
+static mut STATS_uwrite8: u16 = 0;
+
+#[allow(static_mut_refs)]
+pub fn mgbalog_stats() {
+  let mut log = crate::mgba::MgbaBufferedLogger::try_new(
+    crate::mgba::MgbaMessageLevel::Warning,
+  )
+  .unwrap();
+
+  unsafe {
+    for (name, arr) in [
+      ("memcpy", &mut STATS_memcpy),
+      ("memcpy1", &mut STATS_memcpy1),
+      ("memcpy2", &mut STATS_memcpy2),
+      ("memcpy4", &mut STATS_memcpy4),
+      ("memcpy8", &mut STATS_memcpy8),
+      ("libc_memcpy", &mut STATS_libc_memcpy),
+      ("reverse_copy_u8", &mut STATS_reverse_copy_u8),
+      ("reverse_copy_u16", &mut STATS_reverse_copy_u16),
+      ("reverse_copy_u32", &mut STATS_reverse_copy_u32),
+      ("memmove", &mut STATS_memmove),
+      ("memmove4", &mut STATS_memmove4),
+      ("memmove8", &mut STATS_memmove8),
+      ("libc_memmove", &mut STATS_libc_memmove),
+      ("memset", &mut STATS_memset),
+      ("memset4", &mut STATS_memset4),
+      ("memset8", &mut STATS_memset8),
+      ("memclr", &mut STATS_memclr),
+      ("memclr4", &mut STATS_memclr4),
+      ("memclr8", &mut STATS_memclr8),
+      ("libc_memset", &mut STATS_libc_memset),
+    ] {
+      for (i, count) in arr.iter_mut().enumerate() {
+        if *count != 0 {
+          log.write_fmt(format_args!("{name}[{i}] = {count}")).ok();
+          *count = 0;
+        }
+      }
+    }
+  }
+}
 
 /// Byte copy between exclusive regions.
 ///
@@ -11,11 +101,12 @@ use core::ffi::c_void;
 ///   with SRAM memory.
 ///
 /// ## Safety
-/// * If `byte_count` is zero then the pointers are not used and they can be any value.
+/// * If `byte_count` is zero then the pointers are not used and they can be any
+///   value.
 /// * If `byte_count` is non-zero then:
 ///   * Both pointers must be valid for the number of bytes given.
-///   * The two regions must either be *entirely* disjoint or *entirely* overlapping.
-///     Partial overlap is not allowed.
+///   * The two regions must either be *entirely* disjoint or *entirely*
+///     overlapping. Partial overlap is not allowed.
 #[inline]
 #[no_mangle]
 #[instruction_set(arm::a32)]
@@ -35,6 +126,7 @@ pub unsafe extern "C" fn __aeabi_memcpy1(
     dest = inout(reg) dest => _,
     options(nostack)
   }
+  STATS_memcpy1[byte_count & (STATS_SIZE - 1)] += 1;
 }
 
 /// Halfword copy between exclusive regions.
@@ -42,11 +134,12 @@ pub unsafe extern "C" fn __aeabi_memcpy1(
 /// * If the `byte_count` is odd then a single byte copy will happen at the end.
 ///
 /// ## Safety
-/// * If `byte_count` is zero then the pointers are not used and they can be any value.
+/// * If `byte_count` is zero then the pointers are not used and they can be any
+///   value.
 /// * If `byte_count` is non-zero then:
 ///   * Both pointers must be valid for the span used and aligned to 2.
-///   * The two regions must either be *entirely* disjoint or *entirely* overlapping.
-///     Partial overlap is not allowed.
+///   * The two regions must either be *entirely* disjoint or *entirely*
+///     overlapping. Partial overlap is not allowed.
 #[inline]
 #[no_mangle]
 #[instruction_set(arm::a32)]
@@ -71,6 +164,7 @@ pub unsafe extern "C" fn __aeabi_memcpy2(
     let src = src.cast::<u8>();
     dest.write_volatile(src.read_volatile());
   }
+  STATS_memcpy2[byte_count & (STATS_SIZE - 1)] += 1;
 }
 
 /// Word copy between exclusive regions.
@@ -79,12 +173,13 @@ pub unsafe extern "C" fn __aeabi_memcpy2(
 ///   will happen at the end.
 ///
 /// ## Safety
-/// * If `byte_count` is zero then the pointers are not used and they can be any value.
+/// * If `byte_count` is zero then the pointers are not used and they can be any
+///   value.
 /// * If `byte_count` is non-zero then:
 ///   * Both pointers must be valid for the span used and aligned to 4.
-///   * The two regions must either be *entirely* disjoint or *entirely* overlapping.
-///     Partial overlap is not allowed.
-#[naked]
+///   * The two regions must either be *entirely* disjoint or *entirely*
+///     overlapping. Partial overlap is not allowed.
+#[inline(never)]
 #[no_mangle]
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.__aeabi_memcpy4"]
@@ -92,6 +187,14 @@ pub unsafe extern "C" fn __aeabi_memcpy4(
   dest: *mut u32, src: *const u32, byte_count: usize,
 ) {
   core::arch::asm! {
+    // bookkeeping
+    bracer::with_pushed_registers!("{{r4, r5}}", {
+      "ldr r5, {stats}",
+      "add r5, r5, r3, lsl #1",
+      "ldrh r4, [r5]",
+      "add r4, r4, #1",
+      "strh r4, [r5]",
+    }),
     bracer::when!( "r2" >=u "#32" [label_id=2] {
       bracer::with_pushed_registers!("{{r4-r9}}", {
         "1:",
@@ -128,6 +231,7 @@ pub unsafe extern "C" fn __aeabi_memcpy4(
     "ldrbmi r3, [r1], #1",
     "strbmi r3, [r0], #1",
     "bx     lr",
+    stats = sym STATS_memcpy4,
     options(noreturn),
   }
 }
@@ -143,18 +247,20 @@ pub unsafe extern "C" fn __aeabi_memcpy4(
 pub unsafe extern "C" fn __aeabi_memcpy8(
   dest: *mut u32, src: *const u32, byte_count: usize,
 ) {
-  __aeabi_memcpy4(dest, src, byte_count);
+  STATS_memcpy8[byte_count & (STATS_SIZE - 1)] += 1;
+  __aeabi_memcpy4(dest, src, byte_count)
 }
 
 /// Arbitrary-width copy between exclusive regions.
 ///
 /// ## Safety
-/// * If `byte_count` is zero then the pointers are not used and they can be any value.
+/// * If `byte_count` is zero then the pointers are not used and they can be any
+///   value.
 /// * If `byte_count` is non-zero then:
 ///   * Both pointers must be valid for the span used (no required alignment).
-///   * The two regions must either be *entirely* disjoint or *entirely* overlapping.
-///     Partial overlap is not allowed.
-#[naked]
+///   * The two regions must either be *entirely* disjoint or *entirely*
+///     overlapping. Partial overlap is not allowed.
+#[inline(never)]
 #[no_mangle]
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.__aeabi_memcpy"]
@@ -162,6 +268,14 @@ pub unsafe extern "C" fn __aeabi_memcpy(
   dest: *mut u8, src: *const u8, byte_count: usize,
 ) {
   core::arch::asm! {
+    // bookkeeping
+    bracer::with_pushed_registers!("{{r4, r5}}", {
+      "ldr r5, {stats}",
+      "add r5, r5, r3, lsl #1",
+      "ldrh r4, [r5]",
+      "add r4, r4, #1",
+      "strh r4, [r5]",
+    }),
     "cmp    r2, #7", // if count <= (fix+word): just byte copy
     "ble    {__aeabi_memcpy1}",
 
@@ -193,6 +307,7 @@ pub unsafe extern "C" fn __aeabi_memcpy(
     __aeabi_memcpy4 = sym __aeabi_memcpy4,
     __aeabi_memcpy2 = sym __aeabi_memcpy2,
     __aeabi_memcpy1 = sym __aeabi_memcpy1,
+    stats = sym STATS_memcpy,
     options(noreturn)
   }
 }
@@ -204,7 +319,7 @@ pub unsafe extern "C" fn __aeabi_memcpy(
 /// push/pop compared to a direct call to `__aeabi_memcpy`.
 ///
 /// * **Returns:** The `dest` pointer.
-#[naked]
+#[inline(never)]
 #[no_mangle]
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.memcpy"]
@@ -214,11 +329,20 @@ pub unsafe extern "C" fn memcpy(
   // I've seen a standard call to `__aeabi_memcpy` give weird codegen,
   // so we (currently) do the call manually.
   core::arch::asm! {
+    // bookkeeping
+    bracer::with_pushed_registers!("{{r4, r5}}", {
+      "ldr r5, {stats}",
+      "add r5, r5, r3, lsl #1",
+      "ldrh r4, [r5]",
+      "add r4, r4, #1",
+      "strh r4, [r5]",
+    }),
     bracer::with_pushed_registers!("{{r0, lr}}", {
       "bl {__aeabi_memcpy}",
     }),
     "bx lr",
     __aeabi_memcpy = sym __aeabi_memcpy,
+    stats = sym STATS_libc_memcpy,
     options(noreturn)
   }
 }
@@ -232,6 +356,7 @@ pub unsafe extern "C" fn memcpy(
 unsafe extern "C" fn reverse_copy_u8(
   dest: *mut u8, src: *const u8, byte_count: usize,
 ) {
+  STATS_reverse_copy_u8[byte_count & (STATS_SIZE - 1)] += 1;
   core::arch::asm! {
     "1:",
     "subs    {count}, {count}, #1",
@@ -253,6 +378,7 @@ unsafe extern "C" fn reverse_copy_u8(
 unsafe extern "C" fn reverse_copy_u16(
   mut dest: *mut u16, mut src: *const u16, mut byte_count: usize,
 ) {
+  STATS_reverse_copy_u16[byte_count & (STATS_SIZE - 1)] += 1;
   core::arch::asm! {
     "1:",
     "subs    {count}, {count}, #2",
@@ -273,13 +399,22 @@ unsafe extern "C" fn reverse_copy_u16(
 }
 
 // used by `__aeabi_memmove` in some cases
-#[naked]
+#[inline(never)]
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.reverse_copy_u32"]
 unsafe extern "C" fn reverse_copy_u32(
   dest: *mut u32, src: *const u32, byte_count: usize,
 ) {
   core::arch::asm! {
+    // bookkeeping
+    bracer::with_pushed_registers!("{{r4, r5}}", {
+      "ldr r5, {stats}",
+      "add r5, r5, r3, lsl #1",
+      "ldrh r4, [r5]",
+      "add r4, r4, #1",
+      "strh r4, [r5]",
+    }),
+
     bracer::when!( "r2" >=u "#32" [label_id=2] {
       bracer::with_pushed_registers!("{{r4-r9}}", {
         "1:",
@@ -315,6 +450,7 @@ unsafe extern "C" fn reverse_copy_u32(
     "ldrbmi  r3, [r1, #-1]!",
     "strbmi  r3, [r0, #-1]!",
     "bx      lr",
+    stats = sym STATS_reverse_copy_u32,
     options(noreturn),
   }
 }
@@ -330,6 +466,7 @@ unsafe extern "C" fn reverse_copy_u32(
 pub unsafe extern "C" fn __aeabi_memmove4(
   dest: *mut u32, src: *const u32, byte_count: usize,
 ) {
+  STATS_memmove4[byte_count & (STATS_SIZE - 1)] += 1;
   __aeabi_memmove(dest.cast(), src.cast(), byte_count)
 }
 
@@ -344,6 +481,7 @@ pub unsafe extern "C" fn __aeabi_memmove4(
 pub unsafe extern "C" fn __aeabi_memmove8(
   dest: *mut u32, src: *const u32, byte_count: usize,
 ) {
+  STATS_memmove8[byte_count & (STATS_SIZE - 1)] += 1;
   __aeabi_memmove(dest.cast(), src.cast(), byte_count)
 }
 
@@ -351,7 +489,7 @@ pub unsafe extern "C" fn __aeabi_memmove8(
 ///
 /// * The pointers do not have a minimum alignment. The function will
 ///   automatically detect the best type of copy to perform.
-#[naked]
+#[inline(never)]
 #[no_mangle]
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.__aeabi_memmove"]
@@ -359,6 +497,15 @@ pub unsafe extern "C" fn __aeabi_memmove(
   dest: *mut u8, src: *const u8, byte_count: usize,
 ) {
   core::arch::asm! {
+    // bookkeeping
+    bracer::with_pushed_registers!("{{r4, r5}}", {
+      "ldr r5, {stats}",
+      "add r5, r5, r3, lsl #1",
+      "ldrh r4, [r5]",
+      "add r4, r4, #1",
+      "strh r4, [r5]",
+    }),
+
     // when d > s we need to copy back-to-front
     bracer::when!("r0" >=u "r1" [label_id=1] {
       "add     r0, r0, r2",
@@ -392,6 +539,7 @@ pub unsafe extern "C" fn __aeabi_memmove(
     reverse_copy_u8 = sym reverse_copy_u8,
     reverse_copy_u16 = sym reverse_copy_u16,
     reverse_copy_u32 = sym reverse_copy_u32,
+    stats = sym STATS_memmove,
     options(noreturn),
   }
 }
@@ -403,7 +551,7 @@ pub unsafe extern "C" fn __aeabi_memmove(
 /// push/pop compared to a direct call to `__aeabi_memmove`.
 ///
 /// * **Returns:** The `dest` pointer.
-#[naked]
+#[inline(never)]
 #[no_mangle]
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.memmove"]
@@ -411,11 +559,21 @@ pub unsafe extern "C" fn memmove(
   dest: *mut u8, src: *const u8, byte_count: usize,
 ) -> *mut u8 {
   core::arch::asm! {
+    // bookkeeping
+    bracer::with_pushed_registers!("{{r4, r5}}", {
+      "ldr r5, {stats}",
+      "add r5, r5, r3, lsl #1",
+      "ldrh r4, [r5]",
+      "add r4, r4, #1",
+      "strh r4, [r5]",
+    }),
+
     bracer::with_pushed_registers!("{{r0, lr}}", {
       "bl {__aeabi_memmove}",
     }),
     "bx lr",
     __aeabi_memmove = sym __aeabi_memmove,
+    stats = sym STATS_libc_memmove,
     options(noreturn)
   }
 }
@@ -433,6 +591,7 @@ pub unsafe extern "C" fn memmove(
 pub unsafe extern "C" fn __aeabi_memset4(
   dest: *mut u32, byte_count: usize, byte: i32,
 ) {
+  STATS_memset4[byte_count & (STATS_SIZE - 1)] += 1;
   __aeabi_memset(dest.cast(), byte_count, byte)
 }
 
@@ -447,6 +606,7 @@ pub unsafe extern "C" fn __aeabi_memset4(
 pub unsafe extern "C" fn __aeabi_memset8(
   dest: *mut u32, byte_count: usize, byte: i32,
 ) {
+  STATS_memset8[byte_count & (STATS_SIZE - 1)] += 1;
   __aeabi_memset(dest.cast(), byte_count, byte)
 }
 
@@ -454,7 +614,7 @@ pub unsafe extern "C" fn __aeabi_memset8(
 ///
 /// Because of historical reasons, the byte is passed in as an `i32`, but only
 /// the lowest 8 bits are used.
-#[naked]
+#[inline(never)]
 #[no_mangle]
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.__aeabi_memset"]
@@ -462,6 +622,15 @@ pub unsafe extern "C" fn __aeabi_memset(
   dest: *mut u8, byte_count: usize, byte: i32,
 ) {
   core::arch::asm! {
+    // bookkeeping
+    bracer::with_pushed_registers!("{{r4, r5}}", {
+      "ldr r5, {stats}",
+      "add r5, r5, r2, lsl #1",
+      "ldrh r4, [r5]",
+      "add r4, r4, #1",
+      "strh r4, [r5]",
+    }),
+
     bracer::when!("r1" >=u "#8" [label_id=7] {
       // duplicate the byte across all of r2 and r3
       "and    r2, r2, #0xFF",
@@ -515,6 +684,7 @@ pub unsafe extern "C" fn __aeabi_memset(
     "strbcs r2, [r0], #1",
     "bgt    9b",
     "bx     lr",
+    stats = sym STATS_memset,
     options(noreturn)
   }
 }
@@ -528,7 +698,7 @@ pub unsafe extern "C" fn __aeabi_memset(
 /// is swapped, so shuffling registers costs a few cycles.
 ///
 /// * **Returns:** The `dest` pointer.
-#[naked]
+#[inline(never)]
 #[no_mangle]
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.memset"]
@@ -536,6 +706,15 @@ pub unsafe extern "C" fn memset(
   dest: *mut u8, byte: i32, byte_count: usize,
 ) -> *mut u8 {
   core::arch::asm! {
+    // bookkeeping
+    bracer::with_pushed_registers!("{{r4, r5}}", {
+      "ldr r5, {stats}",
+      "add r5, r5, r3, lsl #1",
+      "ldrh r4, [r5]",
+      "add r4, r4, #1",
+      "strh r4, [r5]",
+    }),
+
     bracer::with_pushed_registers!("{{r0, lr}}", {
       "mov r3, r2",
       "mov r2, r1",
@@ -544,6 +723,7 @@ pub unsafe extern "C" fn memset(
     }),
     "bx lr",
     __aeabi_memset = sym __aeabi_memset,
+    stats = sym STATS_libc_memset,
     options(noreturn)
   }
 }
@@ -559,6 +739,7 @@ pub unsafe extern "C" fn memset(
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.__aeabi_memclr4"]
 pub unsafe extern "C" fn __aeabi_memclr4(dest: *mut u32, byte_count: usize) {
+  STATS_memclr4[byte_count & (STATS_SIZE - 1)] += 1;
   __aeabi_memset(dest.cast(), byte_count, 0)
 }
 
@@ -571,6 +752,7 @@ pub unsafe extern "C" fn __aeabi_memclr4(dest: *mut u32, byte_count: usize) {
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.__aeabi_memclr8"]
 pub unsafe extern "C" fn __aeabi_memclr8(dest: *mut u32, byte_count: usize) {
+  STATS_memclr8[byte_count & (STATS_SIZE - 1)] += 1;
   __aeabi_memset(dest.cast(), byte_count, 0)
 }
 
@@ -583,6 +765,7 @@ pub unsafe extern "C" fn __aeabi_memclr8(dest: *mut u32, byte_count: usize) {
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.__aeabi_memclr"]
 pub unsafe extern "C" fn __aeabi_memclr(dest: *mut u8, byte_count: usize) {
+  STATS_memclr[byte_count & (STATS_SIZE - 1)] += 1;
   __aeabi_memset(dest, byte_count, 0)
 }
 
@@ -591,12 +774,20 @@ pub unsafe extern "C" fn __aeabi_memclr(dest: *mut u8, byte_count: usize) {
 /// See [__aeabi_uread4]
 ///
 /// [__aeabi_uread4]: https://github.com/ARM-software/abi-aa/blob/main/rtabi32/rtabi32.rst#unaligned-memory-access
-#[naked]
+#[inline(never)]
 #[no_mangle]
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.aeabi.uread4"]
 unsafe extern "C" fn __aeabi_uread4(address: *const c_void) -> u32 {
   core::arch::asm!(
+    // bookkeeping
+    bracer::with_pushed_registers!("{{r4, r5}}", {
+      "ldr r5, {stats}",
+      "ldrh r4, [r5]",
+      "add r4, r4, #1",
+      "strh r4, [r5]",
+    }),
+
     "ldrb r2, [r0]",
     "ldrb r3, [r0, #1]",
     "orr  r2, r2, r3, lsl #8",
@@ -606,6 +797,7 @@ unsafe extern "C" fn __aeabi_uread4(address: *const c_void) -> u32 {
     "orr  r2, r2, r3, lsl #24",
     "mov  r0, r2",
     "bx   lr",
+    stats = sym STATS_uread4,
     options(noreturn),
   )
 }
@@ -615,12 +807,20 @@ unsafe extern "C" fn __aeabi_uread4(address: *const c_void) -> u32 {
 /// See [__aeabi_uwrite4]
 ///
 /// [__aeabi_uwrite4]: https://github.com/ARM-software/abi-aa/blob/main/rtabi32/rtabi32.rst#unaligned-memory-access
-#[naked]
+#[inline(never)]
 #[no_mangle]
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.aeabi.uwrite4"]
 unsafe extern "C" fn __aeabi_uwrite4(value: u32, address: *mut c_void) {
   core::arch::asm!(
+    // bookkeeping
+    bracer::with_pushed_registers!("{{r4, r5}}", {
+      "ldr r5, {stats}",
+      "ldrh r4, [r5]",
+      "add r4, r4, #1",
+      "strh r4, [r5]",
+    }),
+
     "strb r0, [r1]",
     "lsr  r2, r0, #8",
     "strb r2, [r1, #1]",
@@ -629,6 +829,7 @@ unsafe extern "C" fn __aeabi_uwrite4(value: u32, address: *mut c_void) {
     "lsr  r2, r2, #8",
     "strb r2, [r1, #3]",
     "bx   lr",
+    stats = sym STATS_uwrite4,
     options(noreturn),
   )
 }
@@ -638,12 +839,19 @@ unsafe extern "C" fn __aeabi_uwrite4(value: u32, address: *mut c_void) {
 /// See [__aeabi_uread8]
 ///
 /// [__aeabi_uread8]: https://github.com/ARM-software/abi-aa/blob/main/rtabi32/rtabi32.rst#unaligned-memory-access
-#[naked]
+#[inline(never)]
 #[no_mangle]
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.aeabi.uread8"]
 unsafe extern "C" fn __aeabi_uread8(address: *const c_void) -> u64 {
   core::arch::asm!(
+    // bookkeeping
+    bracer::with_pushed_registers!("{{r4, r5}}", {
+      "ldr r5, {stats}",
+      "ldrh r4, [r5]",
+      "add r4, r4, #1",
+      "strh r4, [r5]",
+    }),
     "ldrb r1, [r0, #4]",
     "ldrb r2, [r0, #5]",
     "orr  r1, r1, r2, lsl #8",
@@ -653,6 +861,7 @@ unsafe extern "C" fn __aeabi_uread8(address: *const c_void) -> u64 {
     "orr  r1, r1, r2, lsl #24",
     "b    {__aeabi_uread4}",
     __aeabi_uread4 = sym __aeabi_uread4,
+    stats = sym STATS_uread8,
     options(noreturn),
   )
 }
@@ -662,12 +871,19 @@ unsafe extern "C" fn __aeabi_uread8(address: *const c_void) -> u64 {
 /// See [__aeabi_uwrite8]
 ///
 /// [__aeabi_uwrite8]: https://github.com/ARM-software/abi-aa/blob/main/rtabi32/rtabi32.rst#unaligned-memory-access
-#[naked]
+#[inline(never)]
 #[no_mangle]
 #[instruction_set(arm::a32)]
 #[link_section = ".iwram.aeabi.uwrite8"]
 unsafe extern "C" fn __aeabi_uwrite8(value: u64, address: *mut c_void) {
   core::arch::asm!(
+    // bookkeeping
+    bracer::with_pushed_registers!("{{r4, r5}}", {
+      "ldr r5, {stats}",
+      "ldrh r4, [r5]",
+      "add r4, r4, #1",
+      "strh r4, [r5]",
+    }),
     "strb r0, [r2]",
     "lsr  r3, r0, #8",
     "strb r3, [r2, #1]",
@@ -683,6 +899,7 @@ unsafe extern "C" fn __aeabi_uwrite8(value: u64, address: *mut c_void) {
     "lsr  r3, r3, #8",
     "strb r3, [r2, #7]",
     "bx   lr",
+    stats = sym STATS_uwrite8,
     options(noreturn),
   )
 }
