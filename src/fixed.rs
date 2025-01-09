@@ -118,11 +118,27 @@ macro_rules! impl_common_fixed_ops {
         Self(i)
       }
 
+      /// Makes a `Fixed` directly from a raw inner value (no shift).
+      #[inline]
+      #[must_use]
+      #[cfg_attr(feature = "track_caller", track_caller)]
+      pub const fn from_bits(i: $t) -> Self {
+        Self(i)
+      }
+
       /// Unwraps the inner value directly into the base type (no shift).
       #[inline]
       #[must_use]
       #[cfg_attr(feature = "track_caller", track_caller)]
       pub const fn into_raw(self) -> $t {
+        self.0
+      }
+
+      /// Unwraps the inner value directly into the base type (no shift).
+      #[inline]
+      #[must_use]
+      #[cfg_attr(feature = "track_caller", track_caller)]
+      pub const fn to_bits(self) -> $t {
         self.0
       }
 
