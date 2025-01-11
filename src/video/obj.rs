@@ -89,7 +89,7 @@ pub enum ObjShape {
 /// Object Attributes, field 0 of the entry.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct ObjAttr0(u16);
+pub struct ObjAttr0(pub u16);
 impl ObjAttr0 {
   pub_const_fn_new_zeroed!();
   u16_int_field!(0 - 7, y, with_y);
@@ -103,7 +103,7 @@ impl ObjAttr0 {
 /// Object Attributes, field 1 of the entry.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct ObjAttr1(u16);
+pub struct ObjAttr1(pub u16);
 impl ObjAttr1 {
   pub_const_fn_new_zeroed!();
   u16_int_field!(0 - 8, x, with_x);
@@ -116,7 +116,7 @@ impl ObjAttr1 {
 /// Object Attributes, field 2 of the entry.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(transparent)]
-pub struct ObjAttr2(u16);
+pub struct ObjAttr2(pub u16);
 impl ObjAttr2 {
   pub_const_fn_new_zeroed!();
   u16_int_field!(0 - 9, tile_id, with_tile_id);
