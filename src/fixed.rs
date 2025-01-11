@@ -367,7 +367,7 @@ macro_rules! impl_signed_fixed_ops {
         let raw: $t = self.to_bits();
         write!(
           f,
-          concat!("Fixed::<", stringify!($t), "{}>::from_bits({})"),
+          concat!("Fixed::<", stringify!($t), ", {}>::from_bits({})"),
           B, raw
         )
       }
