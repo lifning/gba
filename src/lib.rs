@@ -168,12 +168,6 @@ impl<const N: usize> Align4<[u8; N]> {
     let len = const { N / size_of::<T>() };
     unsafe { core::slice::from_raw_parts(data.cast::<T>(), len) }
   }
-
-  #[inline]
-  #[must_use]
-  pub const fn as_slice_static<T: Sized>(&'static self) -> &'static [T] {
-    self.as_slice()
-  }
 }
 
 /// Works like [`include_bytes!`], but the value is wrapped in [`Align4`].
