@@ -259,6 +259,30 @@ macro_rules! impl_common_fixed_ops {
         Self(self.0 >> rhs)
       }
     }
+
+    impl<const B: u32> core::fmt::Debug for Fixed<$t, B> {
+      fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        let raw: $t = self.to_bits();
+        write!(
+          f,
+          concat!("Fixed::<", stringify!($t), ", {}>::from_bits({})"),
+          B, raw
+        )
+      }
+    }
+
+    impl<const B: u32> core::fmt::Display for Fixed<$t, B> {
+      fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        let raw: $t = self.to_bits();
+        let width = f.width().unwrap_or(0);
+        let precision =
+          f.precision().unwrap_or(const { ((B as usize) + 1) / 3 });
+        let fract =
+          (self.fract().to_bits() * (10 as $t).pow(precision as u32)) >> B;
+        write!(f, "{:width$}.{:0precision$}", raw >> B, fract)
+      }
+    }
+
     impl_trait_op_unit!($t, Not, not);
     impl_trait_op_self_rhs!($t, Add, add);
     impl_trait_op_self_rhs!($t, Sub, sub);
@@ -345,33 +369,6 @@ macro_rules! impl_signed_fixed_ops {
       }
     }
     impl_trait_op_unit!($t, Neg, neg);
-    #[cfg(feature = "on_gba")]
-    impl<const B: u32> core::fmt::Debug for Fixed<$t, B> {
-      #[inline]
-      fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        let whole: $t = self.trunc().to_bits() >> B;
-        let fract: $t = self.fract().to_bits();
-        let divisor: $t = 1 << B;
-        if self.is_negative() {
-          let whole = whole.unsigned_abs();
-          write!(f, "-({whole}+{fract}/{divisor})")
-        } else {
-          write!(f, "{whole}+{fract}/{divisor}")
-        }
-      }
-    }
-    #[cfg(not(feature = "on_gba"))]
-    impl<const B: u32> core::fmt::Debug for Fixed<$t, B> {
-      #[inline]
-      fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        let raw: $t = self.to_bits();
-        write!(
-          f,
-          concat!("Fixed::<", stringify!($t), ", {}>::from_bits({})"),
-          B, raw
-        )
-      }
-    }
   };
 }
 impl_signed_fixed_ops!(i8, u8);
@@ -414,15 +411,6 @@ macro_rules! impl_unsigned_fixed_ops {
       #[cfg_attr(feature = "track_caller", track_caller)]
       pub const fn trunc(self) -> Self {
         Self(self.0 & (<$t>::MAX << B))
-      }
-    }
-    impl<const B: u32> core::fmt::Debug for Fixed<$t, B> {
-      #[inline]
-      fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        let whole: $t = self.trunc().to_bits() >> B;
-        let fract: $t = self.fract().to_bits();
-        let divisor: $t = 1 << B;
-        write!(f, "{whole}+{fract}/{divisor}")
       }
     }
   };
