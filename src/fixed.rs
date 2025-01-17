@@ -21,6 +21,12 @@ pub type i16fx8 = Fixed<i16, 8>;
 #[cfg(not(feature = "fixed"))]
 pub type i16fx14 = Fixed<i16, 14>;
 
+/// `i32` with 14 bits of fixed-point fraction.
+/// For easy conversion with i16fx14 and higher precision than i16fx8.
+#[allow(non_camel_case_types)]
+#[cfg(not(feature = "fixed"))]
+pub type i32fx14 = Fixed<i32, 14>;
+
 /// `i32` with 8 bits of fixed-point fraction.
 ///
 /// This is used by the background reference point entries.
