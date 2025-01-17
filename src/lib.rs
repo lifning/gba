@@ -160,10 +160,12 @@ impl<const N: usize> Align4<[u8; N]> {
   #[inline]
   #[must_use]
   pub const fn as_slice<T: Sized>(&self) -> &[T] {
-    const { assert!(N % size_of::<T>() == 0);
-    assert!(
-      align_of::<T>() == 4 || align_of::<T>() == 2 || align_of::<T>() == 1
-    );}
+    const {
+      assert!(N % size_of::<T>() == 0);
+      assert!(
+        align_of::<T>() == 4 || align_of::<T>() == 2 || align_of::<T>() == 1
+      );
+    }
     let data: *const u8 = self.0.as_ptr();
     let len = const { N / size_of::<T>() };
     unsafe { core::slice::from_raw_parts(data.cast::<T>(), len) }
